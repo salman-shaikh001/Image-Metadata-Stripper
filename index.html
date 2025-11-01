@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Free EXIF stripper with Privacy Threat Score™. Remove GPS, camera, timestamp from photos. 100% client-side.">
+  <meta name="keywords" content="EXIF stripper, remove metadata, privacy tool, GPS remover, open source">
+  <meta name="author" content="Salman Shaikh">
+
+  <!-- Open Graph -->
+  <meta property="og:title" content="PrivacyStrip - EXIF Stripper by Salman Shaikh">
+  <meta property="og:description" content="Strip metadata from photos instantly. 100% private. No servers.">
+  <meta property="og:image" content="https://privacystrip.com/og-preview.jpg">
+  <meta property="og:url" content="https://privacystrip.com">
+  <meta property="og:type" content="website">
+
+  <title>PrivacyStrip - Free EXIF Stripper by Salman Shaikh</title>
+
+  <!-- Tailwind + Libraries -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/exifr@8.0.4/dist/full.umd.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+
+  <!-- PWA Manifest -->
+  <link rel="manifest" href="data:application/manifest+json,{
+    %22name%22:%22PrivacyStrip%22,%22short_name%22:%22PrivacyStrip%22,
+    %22description%22:%22Remove metadata from photos%22,%22start_url%22:%22/%22,
+    %22display%22:%22standalone%22,%22background_color%22:%22%f8fafc%22,
+    %22theme_color%22:%22%236366f1%22,
+    %22icons%22:[{%22src%22:%22data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%236366f1'/%3E%3Ctext x='50' y='60' font-family='Arial' font-size='50' fill='white' text-anchor='middle'%3EP%3C/text%3E%3C/svg%3E%22,%22sizes%22:%22192x192%22,%22type%22:%22image/svg+xml%22}]
+  }">
+
+  <style>
+    .dropzone-active { background-color: #dbeafe !important; }
+    details summary { list-style: none; }
+    details summary::-webkit-details-marker { display: none; }
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: #f1f5f9; }
+    ::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 3px; }
+    .section { scroll-margin-top: 80px; }
+
+    /* Hamburger animation */
+    .hamburger.active .bar:nth-child(1) { transform: translateY(8px) rotate(45deg); }
+    .hamburger.active .bar:nth-child(2) { opacity: 0; }
+    .hamburger.active .bar:nth-child(3) { transform: translateY(-8px) rotate(-45deg); }
+
+    /* Center score & safe-state blocks */
+    .metadata-container .bg-gradient-to-r,
+    .metadata-container .bg-green-50 {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+    }
+  </style>
+</head>
+<body class="bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen">
+
+  <!-- NAVBAR (fully responsive) -->
+  <nav class="fixed top-0 left-0 right-0 bg-white/95 backdrop-blur-md shadow-lg z-50 border-b border-gray-100">
+    <div class="container mx-auto px-4 py-4 flex justify-between items-center">
+      <!-- Logo -->
+      <a href="#home" class="flex items-center space-x-2 group">
+        <div class="w-10 h-10 bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl flex items-center justify-center shadow-md group-hover:scale-110 transition-transform">
+          <span class="text-white font-bold text-xl">P</span>
+        </div>
+        <span class="text-xl font-bold text-gray-800">PrivacyStrip</span>
+      </a>
+
+      <!-- Desktop Links -->
+      <div class="hidden md:flex items-center space-x-6">
+        <a href="#features" class="text-gray-700 hover:text-blue-600 font-medium transition">Features</a>
+        <a href="#how-it-works" class="text-gray-700 hover:text-blue-600 font-medium transition">How It Works</a>
+        <a href="https://github.com/salman-shaikh001" target="_blank"
+           class="flex items-center space-x-2 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white px-4 py-2 rounded-xl font-medium transition-all hover:shadow-lg">
+          <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+          <span>salman-shaikh001</span>
+        </a>
+      </div>
+
+      <!-- Mobile Hamburger -->
+      <button id="mobileMenuBtn" class="md:hidden hamburger flex flex-col space-y-1.5 p-2 rounded-lg hover:bg-gray-100 transition">
+        <span class="bar block w-6 h-0.5 bg-gray-800 transition-all"></span>
+        <span class="bar block w-6 h-0.5 bg-gray-800 transition-all"></span>
+        <span class="bar block w-6 h-0.5 bg-gray-800 transition-all"></span>
+      </button>
+    </div>
+
+    <!-- Mobile Menu -->
+    <div id="mobileMenu" class="md:hidden hidden bg-white border-t border-gray-100 shadow-xl">
+      <div class="flex flex-col space-y-4 px-6 py-5">
+        <a href="#features" class="text-gray-700 hover:text-blue-600 font-medium transition">Features</a>
+        <a href="#how-it-works" class="text-gray-700 hover:text-blue-600 font-medium transition">How It Works</a>
+        <a href="https://github.com/salman-shaikh001" target="_blank"
+           class="flex items-center space-x-2 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white px-4 py-2 rounded-xl font-medium transition-all hover:shadow-lg">
+          <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+          <span>GitHub</span>
+        </a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- SECTION 1: HOME / TOOL -->
+  <section id="home" class="section pt-24">
+    <div class="container mx-auto px-4 py-12 max-w-6xl">
+
+      <!-- Hero -->
+      <div class="text-center mb-16">
+        <h1 class="text-5xl md:text-6xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-6">
+          Image Metadata Stripper
+        </h1>
+        <p class="text-xl md:text-2xl text-gray-700 mb-8 max-w-2xl mx-auto leading-relaxed">
+          Instantly remove GPS, camera, timestamp from photos. 
+          <strong>100% client-side</strong> – no uploads, max privacy.
+        </p>
+        <div class="grid md:grid-cols-3 gap-8 mb-12">
+          <div class="bg-white p-8 rounded-2xl shadow-xl">Shield Privacy First</div>
+          <div class="bg-white p-8 rounded-2xl shadow-xl">Lightning In-Browser</div>
+          <div class="bg-white p-8 rounded-2xl shadow-xl">Chart Threat Score™</div>
+        </div>
+      </div>
+
+      <!-- Upload Zone -->
+      <div id="dropzone" class="border-4 border-dashed border-blue-300 bg-white rounded-3xl p-16 md:p-24 text-center cursor-pointer hover:border-blue-500 hover:shadow-2xl transition-all duration-300 mb-12">
+        <div class="w-24 h-24 bg-gradient-to-r from-blue-500 to-purple-600 rounded-3xl flex items-center justify-center mx-auto mb-8 shadow-lg">Camera</div>
+        <h2 class="text-3xl font-bold text-gray-800 mb-4">Drop your images here</h2>
+        <p class="text-xl text-gray-600 mb-8">or <span class="text-blue-600 font-semibold hover:underline">click to browse</span> (JPG, PNG)</p>
+        <p class="text-sm text-gray-500">Multiple files • Mobile drag & drop</p>
+        <input type="file" id="fileInput" multiple accept="image/jpeg,image/png" class="hidden">
+      </div>
+
+      <!-- Files List -->
+      <div id="filesList" class="space-y-6 mb-12"></div>
+
+      <!-- Controls -->
+      <div id="controls" class="flex flex-col sm:flex-row gap-4 justify-center items-center hidden">
+        <button id="cleanAll" class="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-bold px-12 py-4 rounded-2xl shadow-xl text-xl transition-all duration-300 transform hover:scale-105">
+          Clean All & Download ZIP
+        </button>
+        <button id="clearAll" class="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-bold px-8 py-4 rounded-2xl shadow-xl transition-all duration-300">
+          Clear All
+        </button>
+      </div>
+
+      <!-- Support -->
+      <div class="text-center py-16 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-3xl shadow-xl mx-auto max-w-4xl mb-16">
+        <h2 class="text-3xl md:text-4xl font-bold text-gray-800 mb-6">Love This Tool? <span class="text-yellow-500">Support It!</span></h2>
+        <p class="text-lg text-gray-600 mb-8 max-w-2xl mx-auto">100% free & open source. Keep it alive!</p>
+        <div class="flex flex-col sm:flex-row gap-6 justify-center">
+          <a href="https://github.com/sponsors/salman-shaikh001" target="_blank" class="bg-pink-600 hover:bg-pink-700 text-white font-bold px-8 py-4 rounded-2xl shadow-lg transition-all transform hover:scale-105 flex items-center space-x-3">
+            <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M12 .5c-6.63 0-12 5.37-12 12 0 5.3 3.438 9.799 8.205 11.388.6.111.793-.26.793-.577v-2.033c-3.338.726-4.043-1.416-4.043-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.09-.745.083-.729.083-.729 1.205.084 1.84 1.237 1.84 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23a11.5 11.5 0 0 1 3.006-.404c1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+            <span>Sponsor on GitHub</span>
+          </a>
+          <a href="https://buymeacoffee.com/salmanshaikh" target="_blank" class="bg-yellow-500 hover:bg-yellow-600 text-gray-900 font-bold px-8 py-4 rounded-2xl shadow-lg transition-all transform hover:scale-105 flex items-center space-x-3">
+            <span>Buy Me a Coffee</span>
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECTION 2: FEATURES -->
+  <section id="features" class="section bg-white py-20">
+    <div class="container mx-auto px-4 max-w-6xl">
+      <h2 class="text-4xl md:text-5xl font-bold text-center mb-16 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+        Features That Protect You
+      </h2>
+      <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+        <div class="bg-gradient-to-br from-blue-50 to-indigo-100 p-8 rounded-2xl shadow-xl hover:shadow-2xl transition-all">Shield Zero Server Uploads</div>
+        <div class="bg-gradient-to-br from-green-50 to-emerald-100 p-8 rounded-2xl shadow-xl hover:shadow-2xl transition-all">Lightning Instant EXIF Removal</div>
+        <div class="bg-gradient-to-br from-purple-50 to-pink-100 p-8 rounded-2xl shadow-xl hover:shadow-2xl transition-all">Chart Privacy Threat Score™</div>
+        <div class="bg-gradient-to-br from-yellow-50 to-orange-100 p-8 rounded-2xl shadow-xl hover:shadow-2xl transition-all">Zip Batch Processing</div>
+        <div class="bg-gradient-to-br from-teal-50 to-cyan-100 p-8 rounded-2xl shadow-xl hover:shadow-2xl transition-all">Code Open Source</div>
+        <div class="bg-gradient-to-br from-pink-50 to-rose-100 p-8 rounded-2xl shadow-xl hover:shadow-2xl transition-all">Mobile Mobile Ready</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECTION 3: HOW IT WORKS -->
+  <section id="how-it-works" class="section bg-gradient-to-br from-indigo-50 to-purple-100 py-20">
+    <div class="container mx-auto px-4 max-w-6xl">
+      <h2 class="text-4xl md:text-5xl font-bold text-center mb-16 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+        How It Works – In 3 Steps
+      </h2>
+      <div class="grid md:grid-cols-3 gap-8">
+        <div class="text-center">
+          <div class="w-24 h-24 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-xl text-4xl text-white font-bold">1</div>
+          <h3 class="text-2xl font-bold mb-4">Upload Photo</h3>
+          <p class="text-lg text-gray-700">Drag & drop or click to select. JPG & PNG.</p>
+        </div>
+        <div class="text-center">
+          <div class="w-24 h-24 bg-gradient-to-r from-purple-500 to-pink-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-xl text-4xl text-white font-bold">2</div>
+          <h3 class="text-2xl font-bold mb-4">Scan & Score</h3>
+          <p class="text-lg text-gray-700">exifr.js reads metadata. Score shows risk.</p>
+        </div>
+        <div class="text-center">
+          <div class="w-24 h-24 bg-gradient-to-r from-green-500 to-emerald-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-xl text-4xl text-white font-bold">3</div>
+          <h3 class="text-2xl font-bold mb-4">Download Clean</h3>
+          <p class="text-lg text-gray-700">Canvas redraws image. Metadata gone.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer class="bg-gradient-to-t from-gray-900 via-gray-800 to-gray-900 text-white py-16 mt-20">
+    <div class="container mx-auto px-4">
+      <div class="grid md:grid-cols-3 gap-10 mb-12">
+        <div>
+          <div class="flex items-center space-x-3 mb-4">
+            <div class="w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
+              <span class="text-white font-bold text-xl">P</span>
+            </div>
+            <span class="text-2xl font-bold">PrivacyStrip</span>
+          </div>
+          <p class="text-gray-400">Free, private EXIF stripper with Privacy Threat Score™.</p>
+        </div>
+        <div>
+          <h3 class="text-lg font-bold mb-4 text-white">Quick Links</h3>
+          <ul class="space-y-2 text-gray-400">
+            <li><a href="#home" class="hover:text-white transition">Home</a></li>
+            <li><a href="#features" class="hover:text-white transition">Features</a></li>
+            <li><a href="#how-it-works" class="hover:text-white transition">How It Works</a></li>
+          </ul>
+        </div>
+        <div>
+          <h3 class="text-lg font-bold mb-4 text-white">Built By</h3>
+          <a href="https://github.com/salman-shaikh001" target="_blank" class="flex items-center space-x-3 group">
+            <img src="https://github.com/salman-shaikh001.png" alt="Salman Shaikh" class="w-12 h-12 rounded-full ring-2 ring-purple-500 group-hover:ring-purple-400 transition">
+            <div>
+              <p class="font-bold group-hover:text-purple-400 transition">Salman Shaikh</p>
+              <p class="text-sm text-gray-400">@salman-shaikh001</p>
+            </div>
+          </a>
+          <p class="text-sm text-gray-500 mt-3">Pano Akil, Sukkur, Pakistan</p>
+        </div>
+      </div>
+      <div class="border-t border-gray-700 pt-8 flex flex-col md:flex-row justify-between items-center text-sm text-gray-400">
+        <p>© 2025 <strong>PrivacyStrip</strong>. Open Source • Zero Servers • Max Privacy</p>
+        <div class="flex items-center space-x-6 mt-4 md:mt-0">
+          <a href="https://github.com/salman-shaikh001/image-metadata-stripper" target="_blank" class="hover:text-white transition">Star on GitHub</a>
+          <a href="https://buymeacoffee.com/salmanshaikh" target="_blank" class="bg-yellow-500 hover:bg-yellow-600 text-gray-900 px-4 py-1.5 rounded-full text-xs font-bold transition">Buy Me a Coffee</a>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- SCRIPT -->
+  <script>
+    // Mobile Menu Toggle
+    const mobileBtn = document.getElementById('mobileMenuBtn');
+    const mobileMenu = document.getElementById('mobileMenu');
+    mobileBtn.addEventListener('click', () => {
+      mobileBtn.classList.toggle('active');
+      mobileMenu.classList.toggle('hidden');
+    });
+    mobileMenu.querySelectorAll('a').forEach(l => l.addEventListener('click', () => {
+      mobileBtn.classList.remove('active');
+      mobileMenu.classList.add('hidden');
+    }));
+
+    // Core app
+    let files = [];
+    const dropzone = document.getElementById('dropzone');
+    const fileInput = document.getElementById('fileInput');
+    const filesList = document.getElementById('filesList');
+    const controls = document.getElementById('controls');
+    const cleanAllBtn = document.getElementById('cleanAll');
+    const clearAllBtn = document.getElementById('clearAll');
+
+    dropzone.addEventListener('click', () => fileInput.click());
+    ['dragover','dragenter'].forEach(e=>dropzone.addEventListener(e,ev=>{ev.preventDefault();dropzone.classList.add('dropzone-active');}));
+    ['dragleave','drop'].forEach(e=>dropzone.addEventListener(e,()=>dropzone.classList.remove('dropzone-active')));
+    dropzone.addEventListener('drop', e=>{e.preventDefault();handleFiles(e.dataTransfer.files);});
+    fileInput.addEventListener('change', e=>handleFiles(e.target.files));
+
+    function handleFiles(inputFiles){
+      const newFiles = Array.from(inputFiles).filter(f=>f.type==='image/jpeg'||f.type==='image/png');
+      files.push(...newFiles);
+      newFiles.forEach(processFile);
+      updateUI();
+    }
+
+    async function processFile(file){
+      const thumbCanvas = document.createElement('canvas');
+      const thumbCtx = thumbCanvas.getContext('2d');
+      const img = new Image(); img.src = URL.createObjectURL(file);
+      await new Promise(r=>img.onload=r);
+      const size=100; thumbCanvas.width=thumbCanvas.height=size;
+      thumbCtx.drawImage(img,0,0,size,size);
+      const thumbUrl = thumbCanvas.toDataURL();
+
+      let metadata;
+      try{ metadata = await exifr.parse(file); }catch(e){ metadata=null; }
+
+      const fileDiv = document.createElement('div');
+      fileDiv.className = 'bg-white rounded-3xl p-8 shadow-2xl border border-gray-100 hover:shadow-3xl transition-all duration-300';
+      fileDiv.dataset.filename = file.name;
+
+      /* ---------- FIXED FILE-NAME LAYOUT ---------- */
+      fileDiv.innerHTML = `
+        <div class="flex flex-col sm:flex-row items-start gap-4 mb-6">
+          <img src="${thumbUrl}" alt="Preview" class="w-24 h-24 object-cover rounded-2xl shadow-lg flex-shrink-0">
+          <div class="flex-1 min-w-0 flex flex-col">
+            <h3 class="text-xl sm:text-2xl font-bold text-gray-800 break-words hyphens-auto">${file.name}</h3>
+            <p class="text-lg text-gray-600">${formatBytes(file.size)}</p>
+          </div>
+          <button class="clean-single bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white font-bold w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-4 rounded-2xl shadow-xl transition-all duration-300 transform hover:scale-105 text-sm sm:text-base whitespace-nowrap" data-filename="${file.name}">
+            Clean & Download
+          </button>
+        </div>
+        <div class="metadata-container p-6 mt-4"></div>
+      `;
+      /* -------------------------------------------- */
+
+      renderMetadataReport(fileDiv.querySelector('.metadata-container'), metadata, file);
+      filesList.appendChild(fileDiv);
+    }
+
+    function calculateThreatScore(metadata, file){
+      let score=0; const risks=[];
+      if(metadata?.GPSLatitude && metadata?.GPSLongitude){score+=35;risks.push({name:"GPS Location",level:95,icon:"Location"});}
+      if(metadata?.Make || metadata?.Model){score+=20;risks.push({name:"Device Fingerprint",level:60,icon:"Phone"});}
+      if(metadata?.DateTimeOriginal || metadata?.CreateDate){score+=15;risks.push({name:"Exact Timestamp",level:40,icon:"Clock"});}
+      if(metadata?.Thumbnail || file.size>2_000_000){score+=25;risks.push({name:"Embedded Face Thumbnail",level:80,icon:"Person"});}
+      if(metadata?.Artist || metadata?.Copyright){score+=10;risks.push({name:"Personal Info",level:50,icon:"Pen"});}
+      score=Math.min(100,score);
+      return {score,risks};
+    }
+
+    function renderMetadataReport(container, metadata, file){
+      const {score,risks}=calculateThreatScore(metadata,file);
+      const color = score>=70?'from-red-500 to-orange-600':score>=40?'from-yellow-400 to-orange-500':'from-green-400 to-emerald-500';
+      const status = score>=70?'DANGER':score>=40?'CAUTION':'SAFE';
+
+      let html = `
+        <div class="space-y-6">
+          <div class="bg-gradient-to-r ${color} text-white p-6 rounded-2xl text-center shadow-2xl">
+            <h3 class="text-2xl font-bold mb-2">Privacy Threat Score™</h3>
+            <div class="text-5xl font-black">${score}/100</div>
+            <p class="text-lg font-semibold mt-2">${status}</p>
+          </div>
+          ${risks.length?`<div class="bg-gray-50 rounded-2xl p-6"><h4 class="text-xl font-bold mb-4 text-gray-800">Risk Radar</h4><div class="space-y-3">${risks.map(r=>`<div class="flex items-center gap-3"><span class="text-2xl">${r.icon}</span><div class="flex-1"><div class="flex justify-between text-sm"><span class="font-medium">${r.name}</span><span>${r.level}%</span></div><div class="w-full bg-gray-300 rounded-full h-3 mt-1"><div class="bg-gradient-to-r from-red-500 to-orange-500 h-3 rounded-full transition-all duration-1000" style="width:${r.level}%"></div></div></div></div>`).join('')}</div></div>`:''}
+          ${metadata && Object.keys(metadata).length?`<details class="bg-blue-50 rounded-2xl p-4 cursor-pointer"><summary class="font-bold text-lg">View Raw Metadata (${Object.keys(metadata).length} tags)</summary><div class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-2 text-sm max-h-48 overflow-auto">${Object.entries(metadata).map(([k,v])=>`<div class="bg-white p-2 rounded">• <strong>${k}:</strong> ${v}</div>`).join('')}</div></details>`:`<div class="bg-green-50 border-2 border-green-300 rounded-2xl p-8 text-center"><span class="text-5xl block mb-4">Shield</span><p class="text-xl font-bold text-green-800">No metadata found – already safe!</p></div>`}
+          <div class="bg-gradient-to-r from-emerald-500 to-teal-600 text-white p-6 rounded-2xl text-center"><p class="text-lg font-bold">After cleaning: <strong>Score = 0/100</strong></p></div>
+        </div>`;
+      container.innerHTML = html;
+    }
+
+    async function getCleanBlob(file){
+      return new Promise(resolve=>{
+        const img=new Image(); img.src=URL.createObjectURL(file);
+        img.onload=()=>{
+          const canvas=document.createElement('canvas');
+          canvas.width=img.width; canvas.height=img.height;
+          const ctx=canvas.getContext('2d');
+          ctx.drawImage(img,0,0);
+          const mime = file.type==='image/png'?'image/png':'image/jpeg';
+          canvas.toBlob(resolve,mime,0.95);
+        };
+      });
+    }
+
+    async function cleanAndDownload(file){
+      const blob = await getCleanBlob(file);
+      const ext = file.name.split('.').pop().toLowerCase();
+      const cleanExt = ext==='jpeg'?'jpg':ext;
+      const cleanName = file.name.replace(/\.(jpe?g|png)$/i, `_clean.${cleanExt}`);
+      downloadBlob(blob,cleanName);
+    }
+
+    function downloadBlob(blob,filename){
+      const url=URL.createObjectURL(blob);
+      const a=document.createElement('a'); a.href=url; a.download=filename;
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+
+    async function cleanAll(){
+      cleanAllBtn.disabled=true; cleanAllBtn.innerHTML='Processing...';
+      const zip = new JSZip();
+      for(const file of files){
+        const blob = await getCleanBlob(file);
+        const ext = file.name.split('.').pop().toLowerCase();
+        const cleanExt = ext==='jpeg'?'jpg':ext;
+        const cleanName = file.name.replace(/\.(jpe?g|png)$/i, `_clean.${cleanExt}`);
+        zip.file(cleanName,blob);
+      }
+      const zipBlob = await zip.generateAsync({type:'blob'});
+      downloadBlob(zipBlob, `cleaned_images_${new Date().toISOString().slice(0,10)}.zip`);
+      cleanAllBtn.disabled=false; cleanAllBtn.innerHTML='Clean All & Download ZIP';
+    }
+
+    function updateUI(){ controls.classList.toggle('hidden',files.length===0); }
+
+    filesList.addEventListener('click', async e=>{
+      if(e.target.classList.contains('clean-single')){
+        const file = files.find(f=>f.name===e.target.dataset.filename);
+        if(file){
+          e.target.disabled=true; e.target.innerHTML='Cleaning...';
+          await cleanAndDownload(file);
+          e.target.disabled=false; e.target.innerHTML='Downloaded!';
+          setTimeout(()=>e.target.innerHTML='Clean & Download',2000);
+        }
+      }
+    });
+
+    cleanAllBtn.addEventListener('click', cleanAll);
+    clearAllBtn.addEventListener('click',()=>{files=[];filesList.innerHTML='';updateUI();});
+
+    function formatBytes(bytes){
+      if(bytes===0) return '0 Bytes';
+      const k=1024, sizes=['Bytes','KB','MB','GB'];
+      const i=Math.floor(Math.log(bytes)/Math.log(k));
+      return `${parseFloat((bytes/Math.pow(k,i)).toFixed(2))} ${sizes[i]}`;
+    }
+
+    // Smooth scroll
+    document.querySelectorAll('a[href^="#"]').forEach(a=>a.addEventListener('click',e=>{
+      e.preventDefault();
+      document.querySelector(a.getAttribute('href')).scrollIntoView({behavior:'smooth'});
+    }));
+  </script>
+</body>
+</html>
